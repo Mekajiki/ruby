@@ -325,6 +325,9 @@ static int yylex(void*, void*);
 #ifndef RIPPER
 #define yyparse ruby_yyparse
 
+static NODE* new_node_qdot_call(struct parser_params *,NODE*,NODE*,NODE*);
+#define rb_new_node_qdot_call(n1,n2,n3) new_node_qdot_call(parser,(n1),(n2),(n3))
+
 static NODE* node_newnode(struct parser_params *, enum node_type, VALUE, VALUE, VALUE);
 #define rb_node_newnode(type, a1, a2, a3) node_newnode(parser, (type), (a1), (a2), (a3))
 
@@ -724,6 +727,7 @@ static void token_info_pop(struct parser_params*, const char *token);
 %token tANDOP tOROP	/* && and || */
 %token tMATCH tNMATCH	/* =~ and !~ */
 %token tDOT2 tDOT3	/* .. and ... */
+%token tQDOT	        /* .? */
 %token tAREF tASET	/* [] and []= */
 %token tLSHFT tRSHFT	/* << and >> */
 %token tCOLON2		/* :: */
@@ -1184,6 +1188,40 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			$$ = dispatch3(opassign, $$, $4, $5);
 		    %*/
 		    }
+		| primary_value tQDOT tIDENTIFIER tOP_ASGN command_call
+		    {
+		    /*%%%*/
+			value_expr($5);
+			if ($4 == tOROP) {
+			    $4 = 0;
+			}
+			else if ($4 == tANDOP) {
+			    $4 = 1;
+			}
+			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
+			fixpos($$, $1);
+		    /*%
+			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
+			$$ = dispatch3(opassign, $$, $4, $5);
+		    %*/
+		    }
+		| primary_value tQDOT tCONSTANT tOP_ASGN command_call
+		    {
+		    /*%%%*/
+			value_expr($5);
+			if ($4 == tOROP) {
+			    $4 = 0;
+			}
+			else if ($4 == tANDOP) {
+			    $4 = 1;
+			}
+			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
+			fixpos($$, $1);
+		    /*%
+			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
+			$$ = dispatch3(opassign, $$, $4, $5);
+		    %*/
+		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_call
 		    {
 		    /*%%%*/
@@ -1335,6 +1373,16 @@ block_command	: block_call
 			$$ = method_arg($$, $4);
 		    %*/
 		    }
+		| block_call tQDOT operation2 command_args
+		    {
+		    /*%%%*/
+			$$ = NEW_CALL($1, $3, $4);
+			
+		    /*%
+			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
+			$$ = method_arg($$, $4);
+		    %*/
+		    }
 		| block_call tCOLON2 operation2 command_args
 		    {
 		    /*%%%*/
@@ -1399,6 +1447,27 @@ command		: operation command_args       %prec tLOWEST
 		    %*/
 		    }
 		| primary_value '.' operation2 command_args cmd_brace_block
+		    {
+		    /*%%%*/
+			block_dup_check($4,$5);
+		        $5->nd_iter = NEW_CALL($1, $3, $4);
+			$$ = $5;
+			fixpos($$, $1);
+		    /*%
+			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
+			$$ = method_add_block($$, $5);
+		    %*/
+		   }
+		| primary_value tQDOT operation2 command_args	%prec tLOWEST
+		    {
+		    /*%%%*/
+			$$ = NEW_CALL($1, $3, $4);
+			fixpos($$, $1);
+		    /*%
+			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
+		    %*/
+		    }
+		| primary_value tQDOT operation2 command_args cmd_brace_block
 		    {
 		    /*%%%*/
 			block_dup_check($4,$5);
@@ -1654,6 +1723,14 @@ mlhs_node	: user_variable
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
 		    %*/
 		    }
+		| primary_value tQDOT tIDENTIFIER
+		    {
+		    /*%%%*/
+			$$ = attrset($1, $3);
+		    /*%
+			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
+		    %*/
+		    }
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
@@ -1663,6 +1740,14 @@ mlhs_node	: user_variable
 		    %*/
 		    }
 		| primary_value '.' tCONSTANT
+		    {
+		    /*%%%*/
+			$$ = attrset($1, $3);
+		    /*%
+			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
+		    %*/
+		    }
+		| primary_value tQDOT tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = attrset($1, $3);
@@ -1738,6 +1823,14 @@ lhs		: user_variable
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
 		    %*/
 		    }
+		| primary_value tQDOT tIDENTIFIER
+		    {
+		    /*%%%*/
+			$$ = attrset($1, $3);
+		    /*%
+			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
+		    %*/
+		    }
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
@@ -1747,6 +1840,14 @@ lhs		: user_variable
 		    %*/
 		    }
 		| primary_value '.' tCONSTANT
+		    {
+		    /*%%%*/
+			$$ = attrset($1, $3);
+		    /*%
+			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
+		    %*/
+		    }
+		| primary_value tQDOT tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = attrset($1, $3);
@@ -2048,6 +2149,40 @@ arg		: lhs '=' arg
 		    %*/
 		    }
 		| primary_value '.' tCONSTANT tOP_ASGN arg
+		    {
+		    /*%%%*/
+			value_expr($5);
+			if ($4 == tOROP) {
+			    $4 = 0;
+			}
+			else if ($4 == tANDOP) {
+			    $4 = 1;
+			}
+			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
+			fixpos($$, $1);
+		    /*%
+			$1 = dispatch3(field, $1, ripper_id2sym('.'), $3);
+			$$ = dispatch3(opassign, $1, $4, $5);
+		    %*/
+		    }
+		| primary_value tQDOT tIDENTIFIER tOP_ASGN arg
+		    {
+		    /*%%%*/
+			value_expr($5);
+			if ($4 == tOROP) {
+			    $4 = 0;
+			}
+			else if ($4 == tANDOP) {
+			    $4 = 1;
+			}
+			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
+			fixpos($$, $1);
+		    /*%
+			$1 = dispatch3(field, $1, ripper_id2sym('.'), $3);
+			$$ = dispatch3(opassign, $1, $4, $5);
+		    %*/
+		    }
+		| primary_value tQDOT tCONSTANT tOP_ASGN arg
 		    {
 		    /*%%%*/
 			value_expr($5);
@@ -3865,6 +4000,15 @@ block_call	: command do_block
 			$$ = method_optarg($$, $4);
 		    %*/
 		    }
+		| block_call tQDOT operation2 opt_paren_args
+		    {
+		    /*%%%*/
+			$$ = NEW_CALL($1, $3, $4);
+		    /*%
+			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
+			$$ = method_optarg($$, $4);
+		    %*/
+		    }
 		| block_call tCOLON2 operation2 opt_paren_args
 		    {
 		    /*%%%*/
@@ -3907,6 +4051,22 @@ method_call	: operation
 			$$ = method_optarg($$, $5);
 		    %*/
 		    }
+		| primary_value tQDOT operation2
+		    {
+		    /*%%%*/
+			$<num>$ = ruby_sourceline;
+		    /*% %*/
+		    }
+		  opt_paren_args
+		    {
+		    /*%%%*/
+			$$ = rb_new_node_qdot_call($1, $3, $5);
+			nd_set_line($$, $<num>4);			
+		    /*%
+			$$ = dispatch3(call, $1, ripper_id2sym(".?"), $3);
+			$$ = method_optarg($$, $5);
+		    %*/
+		    }
 		| primary_value tCOLON2 operation2
 		    {
 		    /*%%%*/
@@ -3932,6 +4092,23 @@ method_call	: operation
 		    %*/
 		    }
 		| primary_value '.'
+		    {
+		    /*%%%*/
+			$<num>$ = ruby_sourceline;
+		    /*% %*/
+		    }
+		  paren_args
+		    {
+		    /*%%%*/
+			$$ = NEW_CALL($1, rb_intern("call"), $4);
+			nd_set_line($$, $<num>3);
+		    /*%
+			$$ = dispatch3(call, $1, ripper_id2sym('.'),
+				       ripper_intern("call"));
+			$$ = method_optarg($$, $4);
+		    %*/
+		    }
+		| primary_value tQDOT
 		    {
 		    /*%%%*/
 			$<num>$ = ruby_sourceline;
@@ -5425,6 +5602,7 @@ dot_or_colon	: '.'
 		    /*%c
 		    { $$ = $<val>1; }
 		    %*/
+                | tQDOT
 		;
 
 opt_terms	: /* none */
@@ -7746,6 +7924,11 @@ parser_yylex(struct parser_params *parser)
 	    pushback(c);
 	    return tDOT2;
 	}
+	if(c == '?') {
+	    lex_state = EXPR_DOT;
+	    return tQDOT;
+ 	}
+
 	pushback(c);
 	if (c != -1 && ISDIGIT(c)) {
 	    yyerror("no .<digit> floating literal anymore; put 0 before dot");
@@ -8529,6 +8712,16 @@ yylex(void *p)
 #endif
 
     return t;
+}
+
+static NODE*
+new_node_qdot_call(struct parser_params *parser, NODE *target, NODE *method, NODE *params)
+{
+    return NEW_IF(
+	NEW_CALL(target, rb_intern("respond_to?"), NEW_LIST(NEW_LIT(ID2SYM(method)))),
+	NEW_CALL(target, method, params),
+	NEW_NIL()
+	);
 }
 
 #ifndef RIPPER
