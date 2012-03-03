@@ -4107,23 +4107,6 @@ method_call	: operation
 			$$ = method_optarg($$, $4);
 		    %*/
 		    }
-		| primary_value tQDOT
-		    {
-		    /*%%%*/
-			$<num>$ = ruby_sourceline;
-		    /*% %*/
-		    }
-		  paren_args
-		    {
-		    /*%%%*/
-			$$ = NEW_CALL($1, rb_intern("call"), $4);
-			nd_set_line($$, $<num>3);
-		    /*%
-			$$ = dispatch3(call, $1, ripper_id2sym('.'),
-				       ripper_intern("call"));
-			$$ = method_optarg($$, $4);
-		    %*/
-		    }
 		| primary_value tCOLON2
 		    {
 		    /*%%%*/
