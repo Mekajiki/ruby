@@ -1376,8 +1376,7 @@ block_command	: block_call
 		| block_call tQDOT operation2 command_args
 		    {
 		    /*%%%*/
-			$$ = NEW_CALL($1, $3, $4);
-			
+			$$ = rb_new_node_qdot_call($1,$3,$4);
 		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
 			$$ = method_arg($$, $4);
@@ -4003,7 +4002,7 @@ block_call	: command do_block
 		| block_call tQDOT operation2 opt_paren_args
 		    {
 		    /*%%%*/
-			$$ = NEW_CALL($1, $3, $4);
+			$$ = rb_new_node_qdot_call($1, $3, $4)
 		    /*%
 			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
 			$$ = method_optarg($$, $4);
