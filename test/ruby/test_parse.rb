@@ -839,4 +839,65 @@ x = __ENCODING__
     actual = e.backtrace.first[/\A#{Regexp.quote(__FILE__)}:(\d+):/o, 1].to_i
     assert_equal(expected, actual, bug5614)
   end
+
+  def test_command_call_qdot
+    t = Object.new
+    def t.foo(x); x; end
+
+    a = b = c = d = nil
+    assert_nothing_raised do
+      eval <<-END
+          a = t.?foo 42
+          b = t.?foo(42)
+          c = t.?fooo 42
+          d = t.?fooo(42)
+      END
+    end
+    assert_equal([42, 42, nil, nil], [a, b, c, d])
+    
+    t = Object.new
+    def t.foo(x, y); x + y; end
+    a = b = c = d = nil
+    assert_nothing_raised do
+      eval <<-END
+          a = t.?foo 39, 3
+          b = t.?foo(39, 3)
+          c = t.?fooo 39, 3
+          d = t.?fooo(39, 3)
+      END
+    end
+
+    assert_equal([42, 42, nil, nil], [a, b, c, d])
+
+    o = Object.new
+    class << o
+      attr_accessor :bar, :Bar, :qux
+    end
+    o.bar = o.Bar = o::qux = 1
+    a = b = c = d = e = 0
+    assert_nothing_raised do
+      eval <<-END
+          a = o.?bar
+          b = o.?Bar
+          c = o.?qux
+          d = o.?barr
+          e = 0.?Barr
+      END
+    end
+    assert_equal([1,1,1,nil,nil], [a,b,c,d,e])
+
+    o = Object.new
+    def o.foo(x); x + yield; end
+
+    a = b = nil
+    assert_nothing_raised do
+      o.instance_eval <<-END
+        a = foo 1 do 42 end.?to_s
+        b = foo 1 do 42 end.?to_ss
+      END
+    end
+    assert_equal("43", a)
+    assert_equal(nil, b)
+    
+   end
 end

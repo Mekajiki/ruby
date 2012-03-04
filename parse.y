@@ -1344,7 +1344,7 @@ block_command	: block_call
 		    /*%%%*/
 			$$ = rb_new_node_qdot_call($1,$3,$4);
 		    /*%
-			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
+			$$ = dispatch3(call, $1, ripper_id2sym(".?"), $3);
 			$$ = method_arg($$, $4);
 		    %*/
 		    }
@@ -1417,7 +1417,7 @@ command		: operation command_args       %prec tLOWEST
 			$$ = rb_new_node_qdot_call($1, $3, $4);
 			fixpos($$, $1);
 		    /*%
-			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
+			$$ = dispatch4(command_call, $1, ripper_id2sym(".?"), $3, $4);
 		    %*/
 		    }
 		| primary_value '.' operation2 command_args cmd_brace_block
@@ -1429,6 +1429,18 @@ command		: operation command_args       %prec tLOWEST
 			fixpos($$, $1);
 		    /*%
 			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
+			$$ = method_add_block($$, $5);
+		    %*/
+		   }
+		| primary_value tQDOT operation2 command_args cmd_brace_block
+		    {
+		    /*%%%*/
+			block_dup_check($4,$5);
+		        $5->nd_iter = rb_new_node_qdot_call($1, $3, $4);
+			$$ = $5;
+			fixpos($$, $1);
+		    /*%
+			$$ = dispatch4(command_call, $1, ripper_id2sym(".?"), $3, $4);
 			$$ = method_add_block($$, $5);
 		    %*/
 		   }
@@ -3892,7 +3904,7 @@ block_call	: command do_block
 		    /*%%%*/
 			$$ = rb_new_node_qdot_call($1, $3, $4)
 		    /*%
-			$$ = dispatch3(call, $1, ripper_id2sym('.'), $3);
+			$$ = dispatch3(call, $1, ripper_id2sym(".?"), $3);
 			$$ = method_optarg($$, $4);
 		    %*/
 		    }
