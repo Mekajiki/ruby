@@ -898,6 +898,21 @@ x = __ENCODING__
     end
     assert_equal("43", a)
     assert_equal(nil, b)
-    
+
+    def t.bar(x); x + yield; end
+
+    a = []
+    b = c = nil
+    assert_nothing_raised do
+      eval <<-END
+         0.?upto 2 do |e| a[e] = e end
+         b = t.?bar("foo")do "bar" end
+         c = t.?bar "foo" do "bar" end
+      END
+    end
+    assert_equal([0,1,2], a)
+    assert_equal("foobar", b)
+    assert_equal("foobar", c)
+
    end
 end
