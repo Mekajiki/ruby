@@ -841,6 +841,14 @@ x = __ENCODING__
   end
 
   def test_command_call_qdot
+    a = 1
+    assert_nothing_raised do
+      eval <<-END
+          a = nil.?hoge
+      END
+    end
+    assert_equal(nil, a)
+
     t = Object.new
     def t.foo(x); x; end
 
