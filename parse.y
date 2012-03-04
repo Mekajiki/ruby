@@ -1188,40 +1188,6 @@ stmt		: keyword_alias fitem {lex_state = EXPR_FNAME;} fitem
 			$$ = dispatch3(opassign, $$, $4, $5);
 		    %*/
 		    }
-		| primary_value tQDOT tIDENTIFIER tOP_ASGN command_call
-		    {
-		    /*%%%*/
-			value_expr($5);
-			if ($4 == tOROP) {
-			    $4 = 0;
-			}
-			else if ($4 == tANDOP) {
-			    $4 = 1;
-			}
-			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
-			fixpos($$, $1);
-		    /*%
-			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-			$$ = dispatch3(opassign, $$, $4, $5);
-		    %*/
-		    }
-		| primary_value tQDOT tCONSTANT tOP_ASGN command_call
-		    {
-		    /*%%%*/
-			value_expr($5);
-			if ($4 == tOROP) {
-			    $4 = 0;
-			}
-			else if ($4 == tANDOP) {
-			    $4 = 1;
-			}
-			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
-			fixpos($$, $1);
-		    /*%
-			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-			$$ = dispatch3(opassign, $$, $4, $5);
-		    %*/
-		    }
 		| primary_value tCOLON2 tCONSTANT tOP_ASGN command_call
 		    {
 		    /*%%%*/
@@ -1445,28 +1411,16 @@ command		: operation command_args       %prec tLOWEST
 			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
 		    %*/
 		    }
-		| primary_value '.' operation2 command_args cmd_brace_block
-		    {
-		    /*%%%*/
-			block_dup_check($4,$5);
-		        $5->nd_iter = NEW_CALL($1, $3, $4);
-			$$ = $5;
-			fixpos($$, $1);
-		    /*%
-			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
-			$$ = method_add_block($$, $5);
-		    %*/
-		   }
 		| primary_value tQDOT operation2 command_args	%prec tLOWEST
 		    {
 		    /*%%%*/
-			$$ = NEW_CALL($1, $3, $4);
+			$$ = rb_new_node_qdot_call($1, $3, $4);
 			fixpos($$, $1);
 		    /*%
 			$$ = dispatch4(command_call, $1, ripper_id2sym('.'), $3, $4);
 		    %*/
 		    }
-		| primary_value tQDOT operation2 command_args cmd_brace_block
+		| primary_value '.' operation2 command_args cmd_brace_block
 		    {
 		    /*%%%*/
 			block_dup_check($4,$5);
@@ -1722,14 +1676,6 @@ mlhs_node	: user_variable
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
 		    %*/
 		    }
-		| primary_value tQDOT tIDENTIFIER
-		    {
-		    /*%%%*/
-			$$ = attrset($1, $3);
-		    /*%
-			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-		    %*/
-		    }
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
@@ -1739,14 +1685,6 @@ mlhs_node	: user_variable
 		    %*/
 		    }
 		| primary_value '.' tCONSTANT
-		    {
-		    /*%%%*/
-			$$ = attrset($1, $3);
-		    /*%
-			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-		    %*/
-		    }
-		| primary_value tQDOT tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = attrset($1, $3);
@@ -1822,14 +1760,6 @@ lhs		: user_variable
 			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
 		    %*/
 		    }
-		| primary_value tQDOT tIDENTIFIER
-		    {
-		    /*%%%*/
-			$$ = attrset($1, $3);
-		    /*%
-			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-		    %*/
-		    }
 		| primary_value tCOLON2 tIDENTIFIER
 		    {
 		    /*%%%*/
@@ -1839,14 +1769,6 @@ lhs		: user_variable
 		    %*/
 		    }
 		| primary_value '.' tCONSTANT
-		    {
-		    /*%%%*/
-			$$ = attrset($1, $3);
-		    /*%
-			$$ = dispatch3(field, $1, ripper_id2sym('.'), $3);
-		    %*/
-		    }
-		| primary_value tQDOT tCONSTANT
 		    {
 		    /*%%%*/
 			$$ = attrset($1, $3);
@@ -2148,40 +2070,6 @@ arg		: lhs '=' arg
 		    %*/
 		    }
 		| primary_value '.' tCONSTANT tOP_ASGN arg
-		    {
-		    /*%%%*/
-			value_expr($5);
-			if ($4 == tOROP) {
-			    $4 = 0;
-			}
-			else if ($4 == tANDOP) {
-			    $4 = 1;
-			}
-			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
-			fixpos($$, $1);
-		    /*%
-			$1 = dispatch3(field, $1, ripper_id2sym('.'), $3);
-			$$ = dispatch3(opassign, $1, $4, $5);
-		    %*/
-		    }
-		| primary_value tQDOT tIDENTIFIER tOP_ASGN arg
-		    {
-		    /*%%%*/
-			value_expr($5);
-			if ($4 == tOROP) {
-			    $4 = 0;
-			}
-			else if ($4 == tANDOP) {
-			    $4 = 1;
-			}
-			$$ = NEW_OP_ASGN2($1, $3, $4, $5);
-			fixpos($$, $1);
-		    /*%
-			$1 = dispatch3(field, $1, ripper_id2sym('.'), $3);
-			$$ = dispatch3(opassign, $1, $4, $5);
-		    %*/
-		    }
-		| primary_value tQDOT tCONSTANT tOP_ASGN arg
 		    {
 		    /*%%%*/
 			value_expr($5);
