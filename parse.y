@@ -5472,7 +5472,6 @@ dot_or_colon	: '.'
 		    /*%c
 		    { $$ = $<val>1; }
 		    %*/
-                | tQDOT
 		;
 
 opt_terms	: /* none */
